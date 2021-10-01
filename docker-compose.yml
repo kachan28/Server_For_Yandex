@@ -1,0 +1,62 @@
+version: '3.1'
+
+services:
+  users_db:
+    container_name: users_db
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: discontdealerrocks
+    expose:
+      - 5433
+    ports:
+      - 5433:5432
+    volumes:
+      - users_data:/var/lib/postgresql/data
+      - .docker/migrations/accounts.sql:/docker-entrypoint-initdb.d/accounts.sql
+
+  product_db:
+    container_name: product_db
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: discontdealerrocks
+      MONGO_INITDB_DATABASE: discontdealer
+    ports:
+      - 27017:27017
+    volumes:
+      - products_data:/data/db
+      - .docker/migrations/products.js:/docker-entrypoint-initdb.d/products.js:ro
+
+  search:
+    container_name: search
+    image: manticoresearch/manticore
+    restart: always
+    ports:
+      - 9306:9306
+      - 9308:9308
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 65535
+        hard: 65535
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - manticore:/var/lib/manticore
+
+  search_migrator:
+    container_name: search_migrator
+    depends_on:
+      - search
+    build: ./.docker/migrator
+    volumes:
+      - migrator:/var/lib/migrator
+
+volumes:
+  migrator:
+  manticore:
+  users_data:
+  products_data:
